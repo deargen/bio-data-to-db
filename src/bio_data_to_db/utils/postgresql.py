@@ -1,0 +1,269 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import Sequence
+
+import polars as pl
+import psycopg
+from polars.type_aliases import DbWriteEngine, DbWriteMode
+
+logger = logging.getLogger(__name__)
+
+
+def polars_datatype_to_postgresql_type(dtype: pl.PolarsDataType) -> str:
+    match dtype:
+        case pl.Utf8:
+            pg_element_type = "text"
+        case pl.UInt64:
+            # WARN: ignore unsigned because PostgreSQL doesn't support unsigned
+            pg_element_type = "bigint"
+        case pl.Int64:
+            pg_element_type = "bigint"
+        case pl.Int32:
+            pg_element_type = "integer"
+        case pl.Int16:
+            pg_element_type = "smallint"
+        case pl.Float64:
+            pg_element_type = "double precision"
+        case pl.Float32:
+            pg_element_type = "real"
+        case _:
+            raise ValueError(f"Unsupported inner dtype: {dtype}")
+
+    return pg_element_type
+
+
+def create_db_if_not_exists(uri_wo_db: str, db_name: str, comment: str | None = None):
+    with psycopg.connect(
+        conninfo=f"{uri_wo_db}",
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+            conn.autocommit = True
+            # NOTE: using params don't work in psycopg3
+            cursor.execute(query=f"""CREATE DATABASE "{db_name}";""")  # type: ignore
+            if comment is not None:
+                cursor.execute(
+                    query=f"""COMMENT ON DATABASE "{db_name}" IS '{comment}';""",  # type: ignore
+                )
+            logger.info(f"Database '{db_name}' created successfully")
+        except psycopg.errors.DuplicateDatabase:
+            logger.info(f"Database '{db_name}' already exists, Skip creating database.")
+            if comment is not None:
+                conn.rollback()
+                cursor = conn.cursor()
+                cursor.execute(
+                    query=f"""COMMENT ON DATABASE "{db_name}" IS '{comment}';""",  # type: ignore
+                )
+
+        except psycopg.Error:
+            logger.exception(f"Error creating database '{db_name}'")
+
+
+def create_schema_if_not_exists(uri: str, schema_name: str, comment: str | None = None):
+    db_name = uri.split("/")[-1]
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+            # NOTE: using params don't work in psycopg3
+            cursor.execute(query=f"""CREATE SCHEMA "{schema_name}";""")  # type: ignore
+            if comment is not None:
+                cursor.execute(
+                    query=f"""COMMENT ON SCHEMA "{schema_name}" IS '{comment}';""",  # type: ignore
+                )
+            conn.commit()
+
+            logger.info(
+                f"Schema '{schema_name}' created successfully in DB '{db_name}'"
+            )
+        except psycopg.errors.DuplicateSchema:
+            logger.info(
+                f"Schema '{schema_name}' in DB '{db_name}' already exists, Skip creating schema."
+            )
+            if comment is not None:
+                # cancel the transaction and try to add comment
+                conn.rollback()
+                cursor = conn.cursor()
+                cursor.execute(
+                    query=f"""COMMENT ON SCHEMA "{schema_name}" IS '{comment}';""",  # type: ignore
+                )
+                conn.commit()
+        except psycopg.Error:
+            logger.exception(f"Error creating schema '{schema_name}' in DB '{db_name}'")
+
+
+def set_column_as_primary_key(
+    uri: str,
+    table_name: str,
+    column_name: str = "index",
+):
+    """
+    Make an existing index column as primary key with auto increment (identity).
+
+    This is used because pl.DataFrame.write_database() doesn't support writing index column as primary key.
+
+    Example:
+        >>> df = pl.DataFrame({"smiles": ["CCO", "CCN", "CCC"]})  # doctest: +SKIP
+        ... df = df.with_row_index("pk_id")
+        ... df.write_database(...)
+        ... set_column_as_primary_key(uri=uri, table_name="table", column_name="pk_id")
+        ... df2 = pl.DataFrame({"smiles": ["CCC", "CCN", "CCO"]})
+        ... df2.write_database(...)  # you can write without pk_id, it will auto increment pk_id
+    """
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+            # NOTE: since there are already values in the column, we need to set the start value to max+1
+            max_value_query = f"""
+            SELECT MAX("{column_name}") FROM {table_name}
+            """
+            cursor.execute(
+                query=f"""
+                DO $$
+                DECLARE
+                    max_val int;
+                BEGIN
+                    EXECUTE '{max_value_query}' INTO max_val;
+                    EXECUTE 'ALTER TABLE {table_name}
+                        ALTER COLUMN "{column_name}" SET NOT NULL,
+                        ALTER COLUMN "{column_name}" ADD GENERATED BY DEFAULT AS IDENTITY
+                            (START WITH ' || (max_val + 1) || ')',
+                        ADD PRIMARY KEY ("{column_name}");
+                END $$;
+                """  # type: ignore
+            )
+            conn.commit()
+
+        except psycopg.Error:
+            logger.exception(
+                f"Error setting primary key for column '{column_name}' in table '{table_name}'"
+            )
+
+
+def make_columns_unique(
+    uri: str,
+    table_name: str,
+    column_names: str | Sequence[str],
+):
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+
+            if isinstance(column_names, str):
+                column_names = [column_names]
+
+            cursor.execute(
+                query=f"""
+                ALTER TABLE {table_name}
+                ADD CONSTRAINT {table_name.replace(".", "_")}_unique_constraint
+                  UNIQUE ({', '.join(f'"{col}"' for col in column_names)});
+                """  # type: ignore
+            )
+            conn.commit()
+
+        except psycopg.Error:
+            logger.exception(
+                f"Error setting primary key for column '{column_names}' in table '{table_name}'"
+            )
+
+
+def split_column_str_to_list(
+    uri: str,
+    table: str,
+    in_column: str,
+    out_column: str,
+    separator: str,
+    pg_element_type: str = "text",
+):
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+
+            # split the string into a list, and write it to a new column
+            # plus remove the old column
+            cursor.execute(
+                query=f"""
+                ALTER TABLE {table}
+                ADD COLUMN "{out_column}" {pg_element_type}[];
+                """  # type: ignore
+            )
+            cursor.execute(
+                query=f"""
+                UPDATE {table}
+                SET "{out_column}" = STRING_TO_ARRAY("{in_column}", %s)::{pg_element_type}[];
+                """,  # type: ignore
+                params=(separator,),
+            )
+
+            cursor.execute(
+                query=f"""
+                ALTER TABLE {table}
+                DROP COLUMN "{in_column}";
+                """  # type: ignore
+            )
+            conn.commit()
+
+        except psycopg.Error:
+            logger.exception(f"Error splitting column '{in_column}' in table '{table}'")
+
+
+def polars_write_database(
+    df: pl.DataFrame,
+    table_name: str,
+    connection: str,
+    if_table_exists: DbWriteMode = "fail",
+    engine: DbWriteEngine = "sqlalchemy",
+):
+    """
+    pl.DataFrame.write_database() but address the issue of writing unsigned and list columns to database.
+
+    Save all list columns as string columns, then split them back to list columns in the database.
+    This takes some time.
+    """
+    # UInt64 to Int64
+    for col in df.columns:
+        if df[col].dtype == pl.UInt64:
+            df = df.with_columns(pl.col(col).cast(pl.Int64).alias(col))
+
+    # List to string
+    columns_with_list = [col for col in df.columns if df[col].dtype == pl.List]
+    col_to_inner_dtype: dict[str, pl.PolarsDataType] = {}
+    for col in columns_with_list:
+        dtype = df[col].dtype
+        assert isinstance(dtype, pl.List)
+        inner_dtype = dtype.inner
+        assert inner_dtype is not None
+        col_to_inner_dtype[col] = inner_dtype
+
+        df = df.with_columns(
+            pl.col(col)
+            .cast(pl.List(pl.Utf8))
+            .list.join("/@#DSLKF")
+            .alias(f"{col}_strjoinedAOIFDSIUH")
+        )
+        df.drop_in_place(col)
+
+    df.write_database(
+        table_name=table_name,
+        connection=connection,
+        if_table_exists=if_table_exists,
+        engine=engine,
+    )
+
+    for col in columns_with_list:
+        split_column_str_to_list(
+            uri=connection,
+            table=table_name,
+            in_column=f"{col}_strjoinedAOIFDSIUH",
+            out_column=col,
+            separator="/@#DSLKF",
+            pg_element_type=polars_datatype_to_postgresql_type(col_to_inner_dtype[col]),
+        )

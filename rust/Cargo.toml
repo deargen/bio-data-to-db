@@ -1,0 +1,28 @@
+[package]
+name = "bio-data-to-db"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+name = "bio_data_to_db"
+crate-type = [ "cdylib", "rlib",]
+
+[dependencies]
+pyo3 = "0.21.2"
+icecream = "0.1.0"
+shellexpand = "3.1.0"
+
+[features]
+extension-module = [ "pyo3/extension-module",]
+default = [ "extension-module",]
+
+[dependencies.quick-xml]
+version = "0.34"
+
+[dependencies.sqlx]
+version = "0.7"
+features = [ "runtime-tokio", "postgres",]
+
+[dependencies.tokio]
+version = "1.38"
+features = [ "full",]
