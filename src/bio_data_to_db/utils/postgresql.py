@@ -6,11 +6,12 @@ from collections.abc import Sequence
 import polars as pl
 import psycopg
 from polars.type_aliases import DbWriteEngine, DbWriteMode
+from psycopg import sql
 
 logger = logging.getLogger(__name__)
 
 
-def polars_datatype_to_postgresql_type(dtype: pl.PolarsDataType) -> str:
+def polars_datatype_to_postgresql_type(dtype: pl.datatypes.DataType) -> str:
     match dtype:
         case pl.Utf8:
             pg_element_type = "text"
@@ -40,11 +41,19 @@ def create_db_if_not_exists(uri_wo_db: str, db_name: str, comment: str | None = 
         try:
             cursor = conn.cursor()
             conn.autocommit = True
-            # NOTE: using params don't work in psycopg3
-            cursor.execute(query=f"""CREATE DATABASE "{db_name}";""")  # type: ignore
+            cursor.execute(
+                query=sql.SQL("""CREATE DATABASE {db_name};""").format(
+                    db_name=sql.Identifier(db_name)
+                )
+            )
             if comment is not None:
                 cursor.execute(
-                    query=f"""COMMENT ON DATABASE "{db_name}" IS '{comment}';""",  # type: ignore
+                    query=sql.SQL(
+                        """COMMENT ON DATABASE {db_name} IS {comment};"""
+                    ).format(
+                        db_name=sql.Identifier(db_name),
+                        comment=sql.Literal(comment),
+                    )
                 )
             logger.info(f"Database '{db_name}' created successfully")
         except psycopg.errors.DuplicateDatabase:
@@ -53,7 +62,12 @@ def create_db_if_not_exists(uri_wo_db: str, db_name: str, comment: str | None = 
                 conn.rollback()
                 cursor = conn.cursor()
                 cursor.execute(
-                    query=f"""COMMENT ON DATABASE "{db_name}" IS '{comment}';""",  # type: ignore
+                    query=sql.SQL(
+                        """COMMENT ON DATABASE {db_name} IS {comment};"""
+                    ).format(
+                        db_name=sql.Identifier(db_name),
+                        comment=sql.Literal(comment),
+                    )
                 )
 
         except psycopg.Error:
@@ -67,11 +81,19 @@ def create_schema_if_not_exists(uri: str, schema_name: str, comment: str | None 
     ) as conn:
         try:
             cursor = conn.cursor()
-            # NOTE: using params don't work in psycopg3
-            cursor.execute(query=f"""CREATE SCHEMA "{schema_name}";""")  # type: ignore
+            cursor.execute(
+                query=sql.SQL("""CREATE SCHEMA {schema_name};""").format(
+                    schema_name=sql.Identifier(schema_name)
+                )
+            )
             if comment is not None:
                 cursor.execute(
-                    query=f"""COMMENT ON SCHEMA "{schema_name}" IS '{comment}';""",  # type: ignore
+                    query=sql.SQL(
+                        """COMMENT ON SCHEMA {schema_name} IS {comment};"""
+                    ).format(
+                        schema_name=sql.Identifier(schema_name),
+                        comment=sql.Literal(comment),
+                    )
                 )
             conn.commit()
 
@@ -87,7 +109,12 @@ def create_schema_if_not_exists(uri: str, schema_name: str, comment: str | None 
                 conn.rollback()
                 cursor = conn.cursor()
                 cursor.execute(
-                    query=f"""COMMENT ON SCHEMA "{schema_name}" IS '{comment}';""",  # type: ignore
+                    query=sql.SQL(
+                        """COMMENT ON SCHEMA {schema_name} IS {comment};"""
+                    ).format(
+                        schema_name=sql.Identifier(schema_name),
+                        comment=sql.Literal(comment),
+                    )
                 )
                 conn.commit()
         except psycopg.Error:
@@ -96,11 +123,13 @@ def create_schema_if_not_exists(uri: str, schema_name: str, comment: str | None 
 
 def set_column_as_primary_key(
     uri: str,
+    *,
+    schema_name: str = "public",
     table_name: str,
     column_name: str = "index",
 ):
     """
-    Make an existing index column as primary key with auto increment (identity).
+    Make an existing index column (integer type) as primary key with auto increment (identity).
 
     This is used because pl.DataFrame.write_database() doesn't support writing index column as primary key.
 
@@ -109,8 +138,8 @@ def set_column_as_primary_key(
         ... df = df.with_row_index("pk_id")
         ... df.write_database(...)
         ... set_column_as_primary_key(uri=uri, table_name="table", column_name="pk_id")
-        ... df2 = pl.DataFrame({"smiles": ["CCC", "CCN", "CCO"]})
-        ... df2.write_database(...)  # you can write without pk_id, it will auto increment pk_id
+        ... df2 = pl.DataFrame({"smiles": ["CCC", "CCN", "CCO"]})  # append without pk_id
+        ... df2.write_database(..., if_table_exists="append")  # it will auto increment pk_id
     """
     with psycopg.connect(
         conninfo=uri,
@@ -118,23 +147,36 @@ def set_column_as_primary_key(
         try:
             cursor = conn.cursor()
             # NOTE: since there are already values in the column, we need to set the start value to max+1
-            max_value_query = f"""
-            SELECT MAX("{column_name}") FROM {table_name}
-            """
+
             cursor.execute(
-                query=f"""
-                DO $$
-                DECLARE
-                    max_val int;
-                BEGIN
-                    EXECUTE '{max_value_query}' INTO max_val;
-                    EXECUTE 'ALTER TABLE {table_name}
-                        ALTER COLUMN "{column_name}" SET NOT NULL,
-                        ALTER COLUMN "{column_name}" ADD GENERATED BY DEFAULT AS IDENTITY
-                            (START WITH ' || (max_val + 1) || ')',
-                        ADD PRIMARY KEY ("{column_name}");
-                END $$;
-                """  # type: ignore
+                sql.SQL("""
+            SELECT MAX({column}) FROM {table}
+            """).format(
+                    column=sql.Identifier(column_name),
+                    table=sql.Identifier(schema_name, table_name),
+                )
+            )
+            max_id = cursor.fetchone()
+            if max_id is None:
+                logger.error(
+                    f"Error setting primary key for column '{column_name}' in table '{table_name}': no max value found"
+                )
+                return
+
+            max_id = max_id[0]
+
+            cursor.execute(
+                sql.SQL("""
+            ALTER TABLE {table}
+            ALTER COLUMN {column} SET NOT NULL,
+            ALTER COLUMN {column} ADD GENERATED BY DEFAULT AS IDENTITY
+              (START WITH {start_with}),
+            ADD PRIMARY KEY ({column});
+            """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    column=sql.Identifier(column_name),
+                    start_with=sql.Literal(max_id + 1),
+                )
             )
             conn.commit()
 
@@ -146,9 +188,16 @@ def set_column_as_primary_key(
 
 def make_columns_unique(
     uri: str,
+    *,
+    schema_name: str = "public",
     table_name: str,
     column_names: str | Sequence[str],
 ):
+    """
+    Set unique constraint on a column or columns in a table.
+
+    If multiple columns are provided, the unique constraint will be on the combination of the columns.
+    """
     with psycopg.connect(
         conninfo=uri,
     ) as conn:
@@ -159,11 +208,19 @@ def make_columns_unique(
                 column_names = [column_names]
 
             cursor.execute(
-                query=f"""
-                ALTER TABLE {table_name}
-                ADD CONSTRAINT {table_name.replace(".", "_")}_unique_constraint
-                  UNIQUE ({', '.join(f'"{col}"' for col in column_names)});
-                """  # type: ignore
+                query=sql.SQL("""
+                ALTER TABLE {table}
+                ADD CONSTRAINT {table_unique_constraint}
+                  UNIQUE ({columns});
+                """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    table_unique_constraint=sql.Identifier(
+                        f"{schema_name}-{table_name}-{'-'.join(column_names)}-unique_constraint"
+                    ),
+                    columns=sql.SQL(",").join(
+                        sql.Identifier(col) for col in column_names
+                    ),
+                )
             )
             conn.commit()
 
@@ -173,14 +230,66 @@ def make_columns_unique(
             )
 
 
+def make_large_columns_unique(
+    uri: str,
+    *,
+    schema_name: str = "public",
+    table_name: str,
+    column_names: str | Sequence[str],
+):
+    """
+    Use this when the values are large texts, e.g. fasta sequences.
+
+    Reference:
+        - https://stackoverflow.com/questions/71379137/how-to-solve-postgresql-index-width-problem
+    """
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+
+            if isinstance(column_names, str):
+                column_names = [column_names]
+
+            cursor.execute(
+                query=sql.SQL("""
+                CREATE UNIQUE INDEX ON {table} (
+                  {columns}
+                );
+                """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    columns=sql.SQL(",").join(
+                        sql.SQL("md5(") + sql.Identifier(col) + sql.SQL(")")
+                        for col in column_names
+                    ),
+                )
+            )
+            conn.commit()
+
+        except psycopg.Error:
+            logger.exception(
+                f"Error setting unique index for column '{column_names}' in table '{table_name}'"
+            )
+
+
 def split_column_str_to_list(
     uri: str,
-    table: str,
+    *,
+    schema_name: str = "public",
+    table_name: str,
     in_column: str,
     out_column: str,
     separator: str,
     pg_element_type: str = "text",
 ):
+    if pg_element_type.lower() not in {
+        "text",
+    }:
+        raise ValueError(f"Unsupported PostgreSQL element type: {pg_element_type}")
+
+    list_type = sql.SQL(f"{pg_element_type}[]")  # type: ignore
+
     with psycopg.connect(
         conninfo=uri,
     ) as conn:
@@ -190,35 +299,51 @@ def split_column_str_to_list(
             # split the string into a list, and write it to a new column
             # plus remove the old column
             cursor.execute(
-                query=f"""
+                query=sql.SQL("""
                 ALTER TABLE {table}
-                ADD COLUMN "{out_column}" {pg_element_type}[];
-                """  # type: ignore
+                ADD COLUMN {out_column} {list_type};
+                """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    out_column=sql.Identifier(out_column),
+                    list_type=list_type,
+                )
             )
             cursor.execute(
-                query=f"""
+                query=sql.SQL("""
                 UPDATE {table}
-                SET "{out_column}" = STRING_TO_ARRAY("{in_column}", %s)::{pg_element_type}[];
-                """,  # type: ignore
+                SET {out_column} = STRING_TO_ARRAY({in_column}, %s)::{list_type};
+                """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    out_column=sql.Identifier(out_column),
+                    in_column=sql.Identifier(in_column),
+                    list_type=list_type,
+                ),
                 params=(separator,),
             )
 
             cursor.execute(
-                query=f"""
+                query=sql.SQL("""
                 ALTER TABLE {table}
-                DROP COLUMN "{in_column}";
-                """  # type: ignore
+                DROP COLUMN {in_column};
+                """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    in_column=sql.Identifier(in_column),
+                )
             )
             conn.commit()
 
         except psycopg.Error:
-            logger.exception(f"Error splitting column '{in_column}' in table '{table}'")
+            logger.exception(
+                f"Error splitting column '{in_column}' in table '{table_name}'"
+            )
 
 
 def polars_write_database(
     df: pl.DataFrame,
+    *,
+    schema_name: str = "public",
     table_name: str,
-    connection: str,
+    uri: str,
     if_table_exists: DbWriteMode = "fail",
     engine: DbWriteEngine = "sqlalchemy",
 ):
@@ -235,7 +360,7 @@ def polars_write_database(
 
     # List to string
     columns_with_list = [col for col in df.columns if df[col].dtype == pl.List]
-    col_to_inner_dtype: dict[str, pl.PolarsDataType] = {}
+    col_to_inner_dtype: dict[str, pl.datatypes.DataType] = {}
     for col in columns_with_list:
         dtype = df[col].dtype
         assert isinstance(dtype, pl.List)
@@ -251,17 +376,35 @@ def polars_write_database(
         )
         df.drop_in_place(col)
 
+    # Make safe table_name with schema_name.
+    # pl.DataFrame.write_database() only has table_name, so we need to add schema_name.
+    table_with_schema_str = None
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        cursor = conn.cursor()
+        table_with_schema_str = (
+            sql.SQL("""{table_name}""")
+            .format(table_name=sql.Identifier(schema_name, table_name))
+            .as_string(cursor)
+        )
+    if table_with_schema_str is None:
+        raise ValueError(
+            "Failed to get table name with schema. Maybe we can't connect to the database."
+        )
+
     df.write_database(
-        table_name=table_name,
-        connection=connection,
+        table_name=table_with_schema_str,
+        connection=uri,
         if_table_exists=if_table_exists,
         engine=engine,
     )
 
     for col in columns_with_list:
         split_column_str_to_list(
-            uri=connection,
-            table=table_name,
+            uri=uri,
+            schema_name=schema_name,
+            table_name=table_name,
             in_column=f"{col}_strjoinedAOIFDSIUH",
             out_column=col,
             separator="/@#DSLKF",

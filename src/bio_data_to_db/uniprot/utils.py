@@ -113,7 +113,10 @@ def create_accession_to_pk_id(uri: str):
 
 
 def keywords_tsv_to_postgresql(
-    keywords_tsv_file: str | PathLike, uri: str, table_name="keywords"
+    keywords_tsv_file: str | PathLike,
+    uri: str,
+    schema_name="public",
+    table_name="keywords",
 ):
     tsv_columns = [
         "Keyword ID",
@@ -153,4 +156,4 @@ def keywords_tsv_to_postgresql(
         .cast(pl.List(pl.Utf8))
     )
 
-    polars_write_database(df, table_name=table_name, connection=uri)
+    polars_write_database(df, schema_name=schema_name, table_name=table_name, uri=uri)
