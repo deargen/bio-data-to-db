@@ -343,7 +343,7 @@ def polars_write_database(
     *,
     schema_name: str = "public",
     table_name: str,
-    uri: str,
+    connection: str,
     if_table_exists: DbWriteMode = "fail",
     engine: DbWriteEngine = "sqlalchemy",
 ):
@@ -380,7 +380,7 @@ def polars_write_database(
     # pl.DataFrame.write_database() only has table_name, so we need to add schema_name.
     table_with_schema_str = None
     with psycopg.connect(
-        conninfo=uri,
+        conninfo=connection,
     ) as conn:
         cursor = conn.cursor()
         table_with_schema_str = (
@@ -395,14 +395,14 @@ def polars_write_database(
 
     df.write_database(
         table_name=table_with_schema_str,
-        connection=uri,
+        connection=connection,
         if_table_exists=if_table_exists,
         engine=engine,
     )
 
     for col in columns_with_list:
         split_column_str_to_list(
-            uri=uri,
+            uri=connection,
             schema_name=schema_name,
             table_name=table_name,
             in_column=f"{col}_strjoinedAOIFDSIUH",
