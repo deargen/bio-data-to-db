@@ -9,6 +9,7 @@
 |--|--|
 |[![Ruff](https://img.shields.io/badge/Ruff-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)](https://github.com/astral-sh/ruff) [![rustfmt](https://img.shields.io/badge/rustfmt-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://github.com/rust-lang/rustfmt) |[![Actions status](https://github.com/deargen/bio-data-to-db/workflows/Style%20checking/badge.svg)](https://github.com/deargen/bio-data-to-db/actions)|
 | [![Ruff](https://img.shields.io/badge/Ruff-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)](https://github.com/astral-sh/ruff) [![Clippy](https://img.shields.io/badge/clippy-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://github.com/rust-lang/rust-clippy) | [![Actions status](https://github.com/deargen/bio-data-to-db/workflows/Linting/badge.svg)](https://github.com/deargen/bio-data-to-db/actions) |
+| [![doctest](https://img.shields.io/badge/doctest-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)](https://docs.python.org/3/library/doctest.html) | [![Actions status](https://github.com/deargen/bio-data-to-db/workflows/Tests/badge.svg)](https://github.com/deargen/bio-data-to-db/actions) |
 | [![uv](https://img.shields.io/badge/uv-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)](https://github.com/astral-sh/uv) | [![Actions status](https://github.com/deargen/bio-data-to-db/workflows/Check%20pip%20compile%20sync/badge.svg)](https://github.com/deargen/bio-data-to-db/actions) |
 
 
