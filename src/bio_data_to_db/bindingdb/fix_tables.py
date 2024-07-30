@@ -9,8 +9,8 @@ def fix_assay_table(uri: str):
     Fix the assay table in MySQL by decoding HTML entities like '&#39;' and strip empty spaces.
 
     Notes:
-        - original types are VARCHAR but we are converting them to TEXT. The code should work for both cases.
         - the table is replaced.
+        - types are reserved by manually changing them to the original types. For example, varchar -> text -> varchar
         - primary key and foreign key constraints are reserved by manually adding them back just like the original table
     """
     query = """
@@ -21,7 +21,7 @@ def fix_assay_table(uri: str):
     """
     assay_df = pl.read_database_uri(query=query, uri=uri)
 
-    # the column might be "binary" type
+    # the column might be "binary" type if the type is "TEXT" in MySQL
     assay_df = assay_df.with_columns(
         pl.col("description")
         .cast(pl.Utf8)
@@ -42,6 +42,8 @@ def fix_assay_table(uri: str):
             sqlalchemy.text("""
                 ALTER TABLE assay MODIFY COLUMN `entryid` INT(11);
                 ALTER TABLE assay MODIFY COLUMN `assayid` INT(11);
+                ALTER TABLE assay MODIFY COLUMN `description` VARCHAR(4000);
+                ALTER TABLE assay MODIFY COLUMN `assay_name` VARCHAR(200);
                 ALTER TABLE assay ADD PRIMARY KEY (`entryid`,`assayid`);
                 ALTER TABLE assay ADD CONSTRAINT `assay_ibfk_1` FOREIGN KEY (`entryid`) REFERENCES `entry` (`entryid`);
             """)
