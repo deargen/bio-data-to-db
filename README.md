@@ -29,6 +29,8 @@ pip install bio-data-to-db
 
 You can use the command line interface or the python API.
 
+### Uniprot
+
 ```bash
 # It will create a db 'uniprot' and a table named 'public.uniprot_info' in the database.
 # If you want another name, you can optionally pass it as the last argument.
@@ -59,6 +61,20 @@ create_empty_table("postgresql://user:password@localhost:5432/uniprot")
 uniprot_xml_to_postgresql("~/Downloads/uniprot_sprot.xml", "postgresql://user:password@localhost:5432/uniprot")
 create_accession_to_pk_id_table("postgresql://user:password@localhost:5432/uniprot")
 keywords_tsv_to_postgresql("~/Downloads/keywords_all_2024_06_26.tsv", "postgresql://user:password@localhost:5432/uniprot")
+```
+
+### BindingDB
+
+```bash
+# Decode HTML entities and strip the strings in the `assay` table (column: description and assay_name).
+# Currently, only assay table is supported.
+bio-data-to-db bindingdb fix-table assay 'mysql://username:password@localhost/bind'
+```
+
+```python
+from bio_data_to_db.bindingdb.fix_tables import fix_assay_table
+
+fix_assay_table("mysql://username:password@localhost/bind")
 ```
 
 ## 👨‍💻️ Maintenance Notes
