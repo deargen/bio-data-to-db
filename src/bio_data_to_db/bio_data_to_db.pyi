@@ -4,6 +4,7 @@ def uniprot_xml_to_postgresql(
     uri: str,
 ) -> None:
     """
-    (Rust) Load UniProt XML file into PostgreSQL database.
+    (🦀 Rust) Load UniProt XML file into PostgreSQL database.
+
+    This creates a `uniprot` database and a `uniprot_info` table.
     """
-    ...

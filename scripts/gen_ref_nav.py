@@ -28,7 +28,7 @@ for path in sorted(src.rglob("*.py")):
     if module_str in IGNORE_MODULES_EXACT or any(
         module_str.startswith(prefix) for prefix in IGNORE_MODULES_STARTSWITH
     ):
-        print(f"Skipping module: {module_str}")
+        print(f"Skipping module: {module_str}")  # noqa: T201
         continue
     if parts[-1] == "__init__":
         parts = parts[:-1]

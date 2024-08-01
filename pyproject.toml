@@ -105,6 +105,7 @@ ignore = [
   "NPY002",  # legacy numpy random
   "UP017",   # datetime.timezone.utc -> datetime.UTC
   "SIM108",  # use ternary operator instead of if-else
+  "PYI021",  # Docstrings should not be included in stubs
 ]
 
 [tool.ruff.lint.pydocstyle]
