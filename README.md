@@ -1,5 +1,6 @@
 # bio-data-to-db: make Uniprot PostgreSQL database
 
+
 [![image](https://img.shields.io/pypi/v/bio-data-to-db.svg)](https://pypi.python.org/pypi/bio-data-to-db)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/bio-data-to-db)](https://pypi.python.org/pypi/bio-data-to-db)
 [![image](https://img.shields.io/pypi/l/bio-data-to-db.svg)](https://pypi.python.org/pypi/bio-data-to-db)
@@ -18,6 +19,8 @@ Bio data is a little messy to work with, and everybody deserves a clean database
 Written in Rust, thus equipped with extremely fast parsers. Packaged for python, so anyone can easily install and use it.
 
 So far, there is only one function implemented: **convert uniprot data to postgresql**. This package focuses more on parsing the data and inserting it into the database, rather than curating the data.
+
+[📚 Documentation](https://deargen.github.io/bio-data-to-db/)
 
 ## 🛠️ Installation
 
@@ -77,6 +80,35 @@ from bio_data_to_db.bindingdb.fix_tables import fix_assay_table
 fix_assay_table("mysql://username:password@localhost/bind")
 ```
 
+### PostgreSQL Helpers, SMILES, Polars utils and more
+
+```python
+Some useful functions to work with PostgreSQL.
+
+```python
+from bio_data_to_db.utils.postgresql import (
+    create_db_if_not_exists,
+    create_schema_if_not_exists,
+    set_column_as_primary_key,
+    make_columns_unique,
+    make_large_columns_unique,
+    split_column_str_to_list,
+    polars_write_database,
+)
+
+from bio_data_to_db.utils.smiles import (
+    canonical_smiles_wo_salt,
+    polars_canonical_smiles_wo_salt,
+)
+
+from bio_data_to_db.utils.polars import (
+    w_pbar,
+)
+```
+
+You can find the usage in the [📚 documentation](https://deargen.github.io/bio-data-to-db/).
+
+
 ## 👨‍💻️ Maintenance Notes
 
 ### Install from source
@@ -88,9 +120,13 @@ bash scripts/install.sh
 uv pip install -r deps/requirements_dev.in
 ```
 
-### Compile requirements (generate lockfiles)
+### Generate lockfiles
 
 Use GitHub Actions: `apply-pip-compile.yml`. Manually launch the workflow and it will make a commit with the updated lockfiles.
+
+### Publish a new version to PyPI
+
+Use GitHub Actions: `deploy.yml`. Manually launch the workflow and it will compile on all architectures and publish the new version to PyPI.
 
 ### About sqlx
 

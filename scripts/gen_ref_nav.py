@@ -5,7 +5,7 @@ from pathlib import Path
 import mkdocs_gen_files
 
 IGNORE_MODULES_EXACT = {
-    "bio_data_to_db.__init__",
+    # "bio_data_to_db.__init__",
 }
 
 IGNORE_MODULES_STARTSWITH = {

@@ -6,7 +6,7 @@ import sqlalchemy
 
 def fix_assay_table(uri: str):
     """
-    Fix the assay table in MySQL by decoding HTML entities like '&#39;' and strip empty spaces.
+    Fix the assay table in MySQL by decoding HTML entities like `&#39;` and strip empty spaces.
 
     Notes:
         - the table is replaced.

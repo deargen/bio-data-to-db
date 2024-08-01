@@ -66,6 +66,8 @@ plugins:
           options:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
+            members_order: source
+            allow_inspection: false # for .pyi stubs to work
           paths: [src] # search packages in the src folder
 
 extra:
