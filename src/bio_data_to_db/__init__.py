@@ -1,8 +1,6 @@
 # Allow star imports
 # ruff: noqa: F403 F405
 
-from __future__ import annotations
-
 from .bio_data_to_db import *
 
 __doc__ = bio_data_to_db.__doc__

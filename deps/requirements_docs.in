@@ -1,0 +1,10 @@
+mkdocs
+mkdocs-autorefs
+mkdocs-coverage
+mkdocs-gen-files
+mkdocs-literate-nav
+mkdocs-material[imaging]
+mkdocs-material-extensions
+mkdocstrings
+mkdocstrings-python
+mike

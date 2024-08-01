@@ -8,7 +8,7 @@ from .polars import w_pbar
 
 
 @cache
-def canonical_smiles_wo_salt(smiles):
+def canonical_smiles_wo_salt(smiles: str) -> str | None:
     """
     Get the canonical SMILES without salt from the input SMILES.
 
@@ -35,7 +35,7 @@ def polars_canonical_smiles_wo_salt(
     *,
     smiles_col: str = "smiles",
     out_col: str = "canonical_smiles_wo_salt",
-):
+) -> pl.DataFrame:
     """
     Apply canonical_smiles_wo_salt on the DataFrame with tqdm.
     """

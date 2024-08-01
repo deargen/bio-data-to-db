@@ -8,7 +8,7 @@ def w_pbar(pbar: tqdm.std.tqdm, func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Apply progress bar when using `map_elements` in `polars`.
 
-    Example:
+    Examples:
         >>> with tqdm(total=len(df)) as pbar:  # doctest: +SKIP
         ...     df = df.with_columns(
         ...         pl.col("in_col")
