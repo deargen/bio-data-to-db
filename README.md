@@ -92,9 +92,6 @@ fix_assay_table("mysql://username:password@localhost/bind")
 This package also provides some useful functions to work with PostgreSQL, SMILES, Polars and more.
 
 ```python
-Some useful functions to work with PostgreSQL.
-
-```python
 from bio_data_to_db.utils.postgresql import (
     create_db_if_not_exists,
     create_schema_if_not_exists,
