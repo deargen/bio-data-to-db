@@ -464,7 +464,6 @@ def polars_write_database(
         connection = create_engine(connection)
 
     columns_dtype = {col: df[col].dtype for col in df.columns}
-
     column_name_to_sqlalchemy_type = {
         col: polars_datatype_to_sqlalchemy_type(dtype)
         for col, dtype in columns_dtype.items()
