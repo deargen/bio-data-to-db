@@ -17,9 +17,15 @@
 
 Bio data is a little messy to work with, and everybody deserves a clean database. This package helps you to convert bio data to a database.
 
-Written in Rust, thus equipped with extremely fast parsers. Packaged for python, so anyone can easily install and use it.
+Partially written in Rust, thus equipped with an extremely fast uniprot xml parser. Packaged for python, so anyone can easily install and use it.
 
-So far, there is only one function implemented: **convert uniprot data to postgresql**. This package focuses more on parsing the data and inserting it into the database, rather than curating the data.
+This package focuses more on parsing the data and inserting it into the database, rather than curating the data. Main features include:
+
+- **Uniprot**: Parse the uniprot xml file and insert the data into the database.
+- **BindingDB**: Fix the HTML entities in the assay table.
+- **PostgreSQL Helpers**: Useful functions to work with PostgreSQL.
+- **SMILES**: Canonicalize SMILES strings.
+- **Polars**: Useful functions to work with Polars.
 
 [📚 Documentation](https://deargen.github.io/bio-data-to-db/) has the API reference and the usage.
 
