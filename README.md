@@ -1,6 +1,5 @@
 # bio-data-to-db: make Uniprot PostgreSQL database
 
-
 [![image](https://img.shields.io/pypi/v/bio-data-to-db.svg)](https://pypi.python.org/pypi/bio-data-to-db)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/bio-data-to-db)](https://pypi.python.org/pypi/bio-data-to-db)
 [![image](https://img.shields.io/pypi/l/bio-data-to-db.svg)](https://pypi.python.org/pypi/bio-data-to-db)
