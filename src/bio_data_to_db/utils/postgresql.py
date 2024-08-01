@@ -70,6 +70,9 @@ def polars_datatype_to_sqlalchemy_type(
 
 
 def create_db_if_not_exists(uri_wo_db: str, db_name: str, comment: str | None = None):
+    """
+    Create a database if it doesn't exist.
+    """
     with psycopg.connect(
         conninfo=f"{uri_wo_db}",
     ) as conn:
@@ -110,6 +113,9 @@ def create_db_if_not_exists(uri_wo_db: str, db_name: str, comment: str | None = 
 
 
 def create_schema_if_not_exists(uri: str, schema_name: str, comment: str | None = None):
+    """
+    Create a schema if it doesn't exist. The DB should already exist.
+    """
     db_name = uri.split("/")[-1]
     with psycopg.connect(
         conninfo=uri,
@@ -318,6 +324,9 @@ def split_column_str_to_list(
     separator: str,
     pg_element_type: str = "text",
 ):
+    """
+    Split a string column into a list column.
+    """
     if pg_element_type.lower() not in {
         "text",
     }:
@@ -458,13 +467,13 @@ def polars_write_database(
     """
     pl.DataFrame.write_database() but address the issue of writing unsigned and list columns to database.
 
-    https://stackoverflow.com/questions/77098480/polars-psycopg2-write-column-of-lists-to-postgresql
+    Reference:
+        - https://stackoverflow.com/questions/77098480/polars-psycopg2-write-column-of-lists-to-postgresql
     """
     if isinstance(connection, str):
         connection = create_engine(connection)
 
     columns_dtype = {col: df[col].dtype for col in df.columns}
-
     column_name_to_sqlalchemy_type = {
         col: polars_datatype_to_sqlalchemy_type(dtype)
         for col, dtype in columns_dtype.items()
