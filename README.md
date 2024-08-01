@@ -82,6 +82,8 @@ fix_assay_table("mysql://username:password@localhost/bind")
 
 ### PostgreSQL Helpers, SMILES, Polars utils and more
 
+This package also provides some useful functions to work with PostgreSQL, SMILES, Polars and more.
+
 ```python
 Some useful functions to work with PostgreSQL.
 
