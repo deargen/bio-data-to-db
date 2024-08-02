@@ -73,7 +73,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github-alt
-      link: https://github.com/deargen/python-project-template-2024
+      link: https://github.com/deargen/bio-data-to-db
   version:
     provider: mike
 
