@@ -162,7 +162,7 @@ def create_schema_if_not_exists(uri: str, schema_name: str, comment: str | None 
             logger.exception(f"Error creating schema '{schema_name}' in DB '{db_name}'")
 
 
-def set_column_as_primary_key(
+def make_int_column_primary_key_identity(
     uri: str,
     *,
     schema_name: str = "public",
@@ -173,6 +173,7 @@ def set_column_as_primary_key(
     Make an existing index column (integer type) as primary key with auto increment (identity).
 
     This is used because pl.DataFrame.write_database() doesn't support writing index column as primary key.
+    Also, it will automatically set the start value of auto increment to the max value in the column.
 
     Example:
         >>> df = pl.DataFrame({"smiles": ["CCO", "CCN", "CCC"]})  # doctest: +SKIP
@@ -227,6 +228,46 @@ def set_column_as_primary_key(
             )
 
 
+def make_columns_primary_key(
+    uri: str,
+    *,
+    schema_name: str = "public",
+    table_name: str,
+    column_names: str | Sequence[str],
+):
+    """
+    Make multiple columns as primary key but without auto increment (identity).
+
+    This is similar to make_columns_unique() but with primary key constraint.
+    """
+    with psycopg.connect(
+        conninfo=uri,
+    ) as conn:
+        try:
+            cursor = conn.cursor()
+
+            if isinstance(column_names, str):
+                column_names = [column_names]
+
+            cursor.execute(
+                sql.SQL("""
+                    ALTER TABLE {table}
+                    ADD PRIMARY KEY ({columns});
+                """).format(
+                    table=sql.Identifier(schema_name, table_name),
+                    columns=sql.SQL(",").join(
+                        sql.Identifier(col) for col in column_names
+                    ),
+                )
+            )
+            conn.commit()
+
+        except psycopg.Error:
+            logger.exception(
+                f"Error setting primary key for column '{column_names}' in table '{table_name}'"
+            )
+
+
 def make_columns_unique(
     uri: str,
     *,
@@ -250,9 +291,9 @@ def make_columns_unique(
 
             cursor.execute(
                 query=sql.SQL("""
-                ALTER TABLE {table}
-                ADD CONSTRAINT {table_unique_constraint}
-                  UNIQUE ({columns});
+                    ALTER TABLE {table}
+                    ADD CONSTRAINT {table_unique_constraint}
+                      UNIQUE ({columns});
                 """).format(
                     table=sql.Identifier(schema_name, table_name),
                     table_unique_constraint=sql.Identifier(
@@ -267,7 +308,7 @@ def make_columns_unique(
 
         except psycopg.Error:
             logger.exception(
-                f"Error setting primary key for column '{column_names}' in table '{table_name}'"
+                f"Error setting unique constraint for column '{column_names}' in table '{table_name}'"
             )
 
 
@@ -479,7 +520,18 @@ def polars_write_database(
         for col, dtype in columns_dtype.items()
     }
 
-    df.to_pandas(use_pyarrow_extension_array=True).to_sql(
+    pd_df = df.to_pandas(use_pyarrow_extension_array=True)
+
+    # If any column has type list[number] in Polars, the pandas DataFrame will have a numpy array.
+    # We need to convert it to a list, because `to_sql` doesn't support numpy arrays.
+    for col, dtype in columns_dtype.items():
+        if isinstance(dtype, pl.List):
+            if isinstance(dtype.inner, pl.Utf8):
+                continue
+            pd_df[col] = pd_df[col].apply(lambda x: x.tolist())
+
+    # ic(pd_df)
+    pd_df.to_sql(
         schema=schema_name,
         name=table_name,
         con=connection,

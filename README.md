@@ -94,16 +94,21 @@ This package also provides some useful functions to work with PostgreSQL, SMILES
 from bio_data_to_db.utils.postgresql import (
     create_db_if_not_exists,
     create_schema_if_not_exists,
-    set_column_as_primary_key,
+    make_int_column_primary_key_identity,
+    make_columns_primary_key,
     make_columns_unique,
     make_large_columns_unique,
     split_column_str_to_list,
-    polars_write_database,
+    polars_write_database,  # addressed issues with list columns
 )
 
 from bio_data_to_db.utils.smiles import (
     canonical_smiles_wo_salt,
     polars_canonical_smiles_wo_salt,
+)
+
+from bio_data_to_db.utils.fasta import (
+    polars_standardize_fasta,
 )
 
 from bio_data_to_db.utils.polars import (
