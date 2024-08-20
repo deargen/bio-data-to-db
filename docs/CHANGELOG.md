@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [v0.1.3] - 2024-08-20
+### :sparkles: New Features
+- [`2459171`](https://github.com/deargen/bio-data-to-db/commit/2459171ce97e61a5bbef457478b9e73eb7075260) - standardize fasta, multiple column primary key, fix *(commit by [@kiyoon](https://github.com/kiyoon))*
+
+
 ## [v0.1.2] - 2024-08-01
 ### :sparkles: New Features
 - [`6d9f4ad`](https://github.com/deargen/bio-data-to-db/commit/6d9f4ad05ee5389e7fecddbb4fc123d890943858) - fix Binding DB assay html encoding, polars_canonical_smiles_wo_salt, ci and mkdocs *(PR [#2](https://github.com/deargen/bio-data-to-db/pull/2) by [@kiyoon](https://github.com/kiyoon))*
@@ -23,3 +28,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v0.1.0]: https://github.com/deargen/bio-data-to-db/compare/v0.0.0...v0.1.0
 [v0.1.1]: https://github.com/deargen/bio-data-to-db/compare/v0.1.0...v0.1.1
 [v0.1.2]: https://github.com/deargen/bio-data-to-db/compare/v0.1.1...v0.1.2
+[v0.1.3]: https://github.com/deargen/bio-data-to-db/compare/v0.1.2...v0.1.3
