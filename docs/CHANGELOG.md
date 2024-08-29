@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [v0.1.4] - 2024-08-29
+### :construction_worker: Build System
+- [`c6b44ed`](https://github.com/deargen/bio-data-to-db/commit/c6b44edd8b058e7e463b68f02ea3d234691feccf) - use psycopg2-binary *(commit by [@kiyoon](https://github.com/kiyoon))*
+- [`d55bd99`](https://github.com/deargen/bio-data-to-db/commit/d55bd995598f94c712de47d511e48b590df8b13f) - update requirements using uv pip compile [skip ci] *(commit by [@github-actions[bot]](https://github.com/apps/github-actions))*
+
+
 ## [v0.1.3] - 2024-08-20
 ### :sparkles: New Features
 - [`2459171`](https://github.com/deargen/bio-data-to-db/commit/2459171ce97e61a5bbef457478b9e73eb7075260) - standardize fasta, multiple column primary key, fix *(commit by [@kiyoon](https://github.com/kiyoon))*
@@ -29,3 +35,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v0.1.1]: https://github.com/deargen/bio-data-to-db/compare/v0.1.0...v0.1.1
 [v0.1.2]: https://github.com/deargen/bio-data-to-db/compare/v0.1.1...v0.1.2
 [v0.1.3]: https://github.com/deargen/bio-data-to-db/compare/v0.1.2...v0.1.3
+[v0.1.4]: https://github.com/deargen/bio-data-to-db/compare/v0.1.3...v0.1.4
