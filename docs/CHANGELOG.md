@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [v0.1.5] - 2024-08-29
+### :construction_worker: Build System
+- [`3ca2313`](https://github.com/deargen/bio-data-to-db/commit/3ca231301b379d3b66e269f4fa3fa6692a39f7c8) - use psycopg2-binary to make it easy to install *(commit by [@kiyoon](https://github.com/kiyoon))*
+
+
 ## [v0.1.4] - 2024-08-29
 ### :construction_worker: Build System
 - [`c6b44ed`](https://github.com/deargen/bio-data-to-db/commit/c6b44edd8b058e7e463b68f02ea3d234691feccf) - use psycopg2-binary *(commit by [@kiyoon](https://github.com/kiyoon))*
@@ -36,3 +41,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v0.1.2]: https://github.com/deargen/bio-data-to-db/compare/v0.1.1...v0.1.2
 [v0.1.3]: https://github.com/deargen/bio-data-to-db/compare/v0.1.2...v0.1.3
 [v0.1.4]: https://github.com/deargen/bio-data-to-db/compare/v0.1.3...v0.1.4
+[v0.1.5]: https://github.com/deargen/bio-data-to-db/compare/v0.1.4...v0.1.5
