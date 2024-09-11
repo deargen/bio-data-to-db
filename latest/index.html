@@ -1146,6 +1146,10 @@
 </code></pre></div>
 <h2 id="usage">🚦 Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <p>You can use the command line interface or the python API.</p>
+<blockquote>
+<p>[!WARNING]
+<code>bio-data-to-db uniprot xml-to-postgresql</code> is extremely slow if used with remote databases. It is recommended to use it with local connection.</p>
+</blockquote>
 <h3 id="uniprot">Uniprot<a class="headerlink" href="#uniprot" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># It will create a db &#39;uniprot&#39; and a table named &#39;public.uniprot_info&#39; in the database.</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># If you want another name, you can optionally pass it as the last argument.</span>
