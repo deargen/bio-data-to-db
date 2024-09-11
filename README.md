@@ -86,6 +86,32 @@ from bio_data_to_db.bindingdb.fix_tables import fix_assay_table
 fix_assay_table("mysql://username:password@localhost/bind")
 ```
 
+
+### PostgreSQL Helpers (CLI)
+
+Get connection string (aka. URI) from the environment variables or `.env` file.
+
+This is useful for the above `bio-data-to-db` commands that usually require a connection string.
+
+You need to set:  
+- POSTGRESQL_HOST (default: localhost)
+- POSTGRESQL_PORT (default: 5432)
+- POSTGRESQL_USER
+- POSTGRESQL_PASSWORD
+
+```console
+$ bio-data-to-db postgresql get-uri-from-env
+postgresql://username:password@localhost:5432
+
+$ bio-data-to-db postgresql get-uri-from-env uniprot
+postgresql://username:password@localhost:5432/uniprot
+
+$ export POSTGRESQL_PASSWORD='!@#$%^&*()'
+$ bio-data-to-db postgresql get-uri-from-env uniprot
+postgresql://username:%21%40%23%24%25%5E%26%2A%28%29@localhost:5432/uniprot
+```
+
+
 ### PostgreSQL Helpers, SMILES, Polars utils and more
 
 This package also provides some useful functions to work with PostgreSQL, SMILES, Polars and more.
