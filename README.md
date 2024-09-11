@@ -38,6 +38,9 @@ pip install bio-data-to-db
 
 You can use the command line interface or the python API.
 
+> [!WARNING]
+> `bio-data-to-db uniprot xml-to-postgresql` is extremely slow if used with remote databases. It is recommended to use it with local connection.
+
 ### Uniprot
 
 ```bash
